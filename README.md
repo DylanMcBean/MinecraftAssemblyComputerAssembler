@@ -4,8 +4,8 @@ Build an assembler for my MinecraftCommandBlockComputer thats lets you assemble 
 to import it simply grab the created file into your function folder and then create a command block at the start of the memoty and call your function from there
 
 
-#Assembly Instruction Set
-Minecraft Command Block Assembly Computer
+#Assembly Instruction Set  
+Minecraft Command Block Assembly Computer  
 MCAC
  
 NOP **NO OPERATION**
