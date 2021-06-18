@@ -1,0 +1,25 @@
+; test.mcac
+; Author: Dylan McBean
+; Date: 10/06/2021
+
+SSTK    [127]
+
+startpoint:
+    PUSH    [0x40]
+    MOV     EAX, [1]
+    ADD     EAX, 4096
+    MOV     [1], EAX
+    CMP     [1], 327730
+    JG      startpoint
+    MOV     [1], 262194
+    RJMP    1
+
+midpoint:
+    POP     [0x40]
+    MOV     EAX, [14]
+    ADD     EAX, 4096
+    MOV     [14], EAX
+    CMP     [14], 327730
+    JG      midpoint
+    MOV     [14], 262197
+    HLT
