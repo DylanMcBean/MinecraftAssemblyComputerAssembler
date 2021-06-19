@@ -1,25 +1,32 @@
-; test.mcac
-; Author: Dylan McBean
+; File Name: Reverse List
+; Author: PyroDeathAdder
 ; Date: 10/06/2021
 
-SSTK    [127]
+;section .DATA:
+;    .define valueW = 1
+;    .define valueX = [1]
+;    .define valueY = [4,3,2,1,0]
+;    .define valueZ = [[0x004],[0x003],[0x20],[0x01],[0xFF]]
 
-startpoint:
-    PUSH    [0x40]
-    MOV     EAX, [1]
-    ADD     EAX, 4096
-    MOV     [1], EAX
-    CMP     [1], 327730
-    JG      startpoint
-    MOV     [1], 262194
-    RJMP    1
+section .CODE:
+    SSTK    [127]
 
-midpoint:
-    POP     [0x40]
-    MOV     EAX, [14]
-    ADD     EAX, 4096
-    MOV     [14], EAX
-    CMP     [14], 327730
-    JG      midpoint
-    MOV     [14], 262197
-    HLT
+    startpoint: ;start point
+        PUSH    [0x40]
+        MOV     EAX, [1]
+        ADD     EAX, 4096
+        MOV     [1], EAX
+        CMP     [1], 327730
+        JG      startpoint
+        MOV     [1], 262194
+        RJMP    1
+
+    midpoint:
+        POP     [0x40]
+        MOV     EAX, [14]
+        ADD     EAX, 4096
+        MOV     [14], EAX
+        CMP     [14], 327730
+        JG      midpoint
+        MOV     [14], 262197
+        HLT

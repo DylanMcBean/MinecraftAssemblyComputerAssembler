@@ -1,17 +1,68 @@
 import re
 import sys
 
+
 def process_file(file):
     varible_bytes = {}
     memory_bytes = {}
     output_bytes = ""
     labels = {}
+    section = None
     # * Process File test
-    print("Pre-Processing Pass...")
+    print("Pre Assembly Pass...")
     with open(file) as f:
         for line in f.read().splitlines():
-            if ':' in line and line.endswith(":"):
-                labels[line.replace(":", "")] = None
+            if 'section .' in line and ((line.index('section .') > line.index('section .')) if ';' in line else True):
+                line = line.replace(":", "").replace(" ", "")
+                line = re.sub("section.", "", line)
+                section = line
+
+            if section == "CODE":
+                if ':' in line and ((line.index(';') > line.index(':')) if ';' in line else True):
+                    line = line.replace(":", "").replace(" ", "")
+                    line = re.sub(";.*$", "", line)
+                    labels[line] = None
+            elif '.define' in line and ((line.index(';') > line.index('.define')) if ';' in line else True):
+                varible = re.sub(".define", "", line).replace(
+                    " ", "").split("=")
+                # > get memory value varible
+                if re.match('\[(\d+|0x[a-fA-F0-9]+)\]', varible[1]):
+                    varible[1] = varible[1][1:-1]
+                    varible[1] = int(
+                        varible[1], 10 if "x" not in varible[1] else 16)
+                    varible[1] = {
+                        "varible_value": varible[1],
+                        "type": "mem",
+                        "array": False,
+                        "mem location": 1 if varible_bytes == {} else varible_bytes[list(varible_bytes)[-1]]["mem location"]+1}
+                # > get constant value varible
+                elif re.match('(\d+|0x[a-fA-F0-9]+)', varible[1]):
+                    varible[1] = int(
+                        varible[1], 10 if "x" not in varible[1] else 16)
+                    varible[1] = {
+                        "varible_value": varible[1],
+                        "type": "constant",
+                        "array": False,
+                        "mem location": 1 if varible_bytes == {} else varible_bytes[list(varible_bytes)[-1]]["mem location"]+1}
+                # > get memory array varible
+                elif re.match('\[(\[(\d+|0x[a-fA-F0-9]+)\],?)+\]', varible[1]):
+                    varible[1] = [int(x[1:-1], 10 if "x" not in x[1:-1] else 16)
+                                  for x in re.findall("(?<=\[).*(?=\])", varible[1])[0].split(",")]
+                    varible[1] = {
+                        "varible_value": varible[1],
+                        "type": "mem",
+                        "array": True,
+                        "mem location": 1 if varible_bytes == {} else varible_bytes[list(varible_bytes)[-1]]["mem location"]+len(varible[1])}
+                # > get constant array varible
+                elif re.match('\[((0x[a-fA-F0-9]+|\d+),?)+\]', varible[1]):
+                    varible[1] = [int(x, 10 if "x" not in x else 16) for x in re.findall(
+                        "(?<=\[).*(?=\])", varible[1])[0].split(",")]
+                    varible[1] = {
+                        "varible_value": varible[1],
+                        "type": "constant",
+                        "array": True,
+                        "mem location": 1 if varible_bytes == {} else varible_bytes[list(varible_bytes)[-1]]["mem location"]+len(varible[1])}
+                varible_bytes[varible[0]] = varible[1]
 
     print("Assembling Script...")
     with open(file) as f:
@@ -26,13 +77,24 @@ def process_file(file):
             if len(line) == 0:
                 continue
 
+            if 'section .' in line and ((line.index('section .') > line.index('setion .')) if ';' in line else True):
+                line = line.replace(":", "").replace(" ", "")
+                line = re.sub("section.", "", line)
+                section = line
+
+            if section == "DATA":
+                continue
+
             # check for labels
-            if ':' in line and line.endswith(":"):
-                labels[line.replace(":", "")] = len(output_bytes)//8
+            if ':' in line and ((line.index(';') > line.index(':')) if ';' in line else True) and "section" not in line:
+                line_holder = line.replace(":", "").replace(" ", "")
+                line_holder = re.sub(";.*$", "", line_holder)
+                labels[line_holder] = list(memory_bytes.items(
+                ))[-1][1]["mem location"] + (len(list(memory_bytes.items())[-1][1]["bytes"])//8)
                 # > check if label has got a pointer in the output bytes and if so replace it
                 try:
                     output_bytes = output_bytes.replace(
-                        f"<<{line.replace(':', '')}>>", f"{len(output_bytes)//8:05x}")
+                        f"<<{line_holder}>>", f"{len(output_bytes)//8:05x}")
                 except:
                     pass
 
@@ -68,7 +130,7 @@ def process_file(file):
                     memory_bytes[len(memory_bytes.keys())] = {
                         "parts": parts,
                         "bytes": f'{["EAX","EBX","ECX","EDX"].index(instructions[0]["instruction"]):05x}{op_code_numbers[op_code]}',
-                        "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                        "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                     }
                 elif instructions[0]["type"] == "mem":
                     op_code_numbers = {"INC": "011", "DEC": "013", "JMP": "019", "JE": "01A", "JNE": "01B", "JZ": "01C", "JG": "01D",
@@ -76,7 +138,7 @@ def process_file(file):
                     memory_bytes[len(memory_bytes.keys())] = {
                         "parts": parts,
                         "bytes": f'{instructions[0]["instruction"]:05x}{op_code_numbers[op_code]}',
-                        "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                        "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                     }
                 elif instructions[0]["type"] == "const":
                     op_code_numbers = {"RJMP": "021", "RJE": "022", "RJNE": "023", "RJZ": "024",
@@ -84,7 +146,7 @@ def process_file(file):
                     memory_bytes[len(memory_bytes.keys())] = {
                         "parts": parts,
                         "bytes": f'{instructions[0]["instruction"]:05x}{op_code_numbers[op_code]}',
-                        "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                        "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                     }
                 elif instructions[0]["type"] == "label":
                     # > Check if labels is in script and check if labels has already been seen or not
@@ -95,13 +157,13 @@ def process_file(file):
                             memory_bytes[len(memory_bytes.keys())] = {
                                 "parts": parts,
                                 "bytes": f'{labels[instructions[0]["instruction"]]:05x}{op_code_numbers[op_code]}',
-                                "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                                "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                             }
                         else:
                             memory_bytes[len(memory_bytes.keys())] = {
                                 "parts": parts,
                                 "bytes": f"<<{instructions[0]['instruction']}>>{op_code_numbers[op_code]}",
-                                "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                                "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                             }
                     else:
                         print(
@@ -114,7 +176,7 @@ def process_file(file):
                     memory_bytes[len(memory_bytes.keys())] = {
                         "parts": parts,
                         "bytes": f'{["EAX","EBX","ECX","EDX"].index(instructions[0]["instruction"]):05x}{op_code_numbers[op_code+instructions[1]["type"]]}',
-                        "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                        "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                     }
                 elif instructions[0]["type"] == "mem":
                     op_code_numbers = {"MOVreg": "003", "MOVconst": "005", "ADDreg": "008", "ADDconst": "00A", "SUBreg": "00D",
@@ -122,7 +184,7 @@ def process_file(file):
                     memory_bytes[len(memory_bytes.keys())] = {
                         "parts": parts,
                         "bytes": f'{instructions[0]["instruction"]:05x}{op_code_numbers[op_code+instructions[1]["type"]]}',
-                        "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                        "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                     }
 
                 if instructions[1]["type"] == "reg":
@@ -141,8 +203,25 @@ def process_file(file):
                 memory_bytes[len(memory_bytes.keys())] = {
                     "parts": parts,
                     "bytes": {"HLT": "000000FF", "NOP": "00000000", "RET": "00000036"}[op_code],
-                    "mem location": 0 if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
+                    "mem location": 0 if (varible_bytes == {} and memory_bytes == {}) else (varible_bytes[list(varible_bytes)[-1]]["mem location"]+1) if memory_bytes == {} else memory_bytes[list(memory_bytes)[-1]]["mem location"]+1
                 }
+
+    print("Post Assembly pass...")
+    # > Add the data section to the output bytes
+    # > add the jump to the start of the code section
+    if varible_bytes != {}:
+        output_bytes += f"{(varible_bytes[list(varible_bytes)[-1]]['mem location']+1):05x}021"
+    # > ass the varibles to output bytes
+    for key, value in varible_bytes.items():
+        if not value["array"]:
+            output_bytes += f"{value['varible_value']:08x}"
+        else:
+            for inner_value in value["varible_value"]:
+                output_bytes += f"{inner_value:08x}"
+
+    # > Add the code section to the output bytes
+    for key, value in memory_bytes.items():
+        output_bytes += value["bytes"]
 
     print("Creating Minecraft Commands...")
     minecraft_commands = []
