@@ -1,0 +1,66 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "ASM-Mine",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#op-codes"
+		},
+		{
+			"include": "#registers"
+		},
+		{
+			"include": "#hexadecimal"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#labels"
+		},
+		{
+			"include": "#section"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [{
+				"name": "comment",
+				"match": ";.+$"
+			}]
+		},"op-codes": {
+			"patterns": [{
+				"name": "keyword",
+				"match": "(NOP|MOV|ADD|SUB|INC|DEC|CMP|JPM|JE|JNE|JZ|JG|JGE|JL|JLE|RJMP|RJE|RJNE|RJZ|RJG|RJGE|RJL|RJLE|PRINT|IMUL|SSTK|PUSH|POP|RET|HLT)"
+			}]
+		},"registers": {
+			"patterns": [{
+				"name": "string",
+				"match": "E[ABCD]X"
+			}]
+		},"hexadecimal": {
+			"patterns": [{
+				"name": "constant.other",
+				"match": "0x[A-Fa-f0-9]+"
+			}]
+		},"numbers": {
+			"patterns": [{
+				"name": "constant.numeric",
+				"match": "\\d+"
+			}]
+		},"labels": {
+			"patterns": [{
+				"name": "markup.bold",
+				"match": "[a-zA-Z]*[a-zA-Z0-9_]*:"
+			}]
+		},"section": {
+			"patterns": [{
+				"name": "markup.changed",
+				"match": "section .(DATA|CODE):"
+			}]
+		}
+	},
+	"scopeName": "source.mcac"
+}

@@ -1,0 +1,25 @@
+{
+    "name": "mcac",
+    "displayName": "Minecraft Assembly",
+    "description": "Minecraft assembly for my minecraft command block computer",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.57.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "mcac",
+            "aliases": ["ASM-Mine", "mcac"],
+            "extensions": ["mcac"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "mcac",
+            "scopeName": "source.mcac",
+            "path": "./syntaxes/mcac.tmLanguage.json"
+        }]
+    }
+}

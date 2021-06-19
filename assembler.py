@@ -1,7 +1,6 @@
 import re
 import sys
 
-
 def process_file(file):
     varible_bytes = {}
     memory_bytes = {}
